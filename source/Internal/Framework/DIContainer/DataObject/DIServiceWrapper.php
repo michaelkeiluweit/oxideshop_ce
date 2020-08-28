@@ -28,6 +28,9 @@ class DIServiceWrapper
     /** @var  string $class */
     private $class;
 
+    /** @var  array $calls */
+    private $calls;
+
     /**
      * DIServiceWrapper constructor.
      *
@@ -38,6 +41,12 @@ class DIServiceWrapper
     {
         $this->key = $key;
         $this->serviceArray = $serviceArray;
+
+        $this->calls = [];
+        if (array_key_exists($this::CALLS_SECTION, $this->serviceArray)) {
+            $this->calls = $this->serviceArray[$this::CALLS_SECTION];
+            unset($this->serviceArray[$this::CALLS_SECTION]);
+        }
 
         if (isset($serviceArray['class'])) {
             $this->class = $serviceArray['class'];
@@ -51,7 +60,11 @@ class DIServiceWrapper
      */
     public function getServiceAsArray(): array
     {
-        return $this->serviceArray;
+        $tmp = $this->serviceArray;
+        if (!empty($this->calls)) {
+            $tmp[$this::CALLS_SECTION] = $this->calls;
+        }
+        return $tmp;
     }
 
     /**
@@ -63,10 +76,7 @@ class DIServiceWrapper
             return false;
         }
 
-        $class = $this->getClass();
-        $interfaces = class_implements($class);
-
-        return \in_array(ShopAwareInterface::class, $interfaces, true);
+        return $this->getClass() instanceof ShopAwareInterface;
     }
 
     /**
@@ -158,11 +168,8 @@ class DIServiceWrapper
      */
     private function getCalls(): array
     {
-        if (!\array_key_exists($this::CALLS_SECTION, $this->serviceArray)) {
-            return [];
-        }
         $calls = [];
-        foreach ($this->serviceArray[$this::CALLS_SECTION] as $callArray) {
+        foreach ($this->calls as $callArray) {
             $calls[] = new DICallWrapper($callArray);
         }
 
@@ -190,10 +197,7 @@ class DIServiceWrapper
      */
     private function addCall(DICallWrapper $call)
     {
-        if (!\array_key_exists($this::CALLS_SECTION, $this->serviceArray)) {
-            $this->serviceArray[$this::CALLS_SECTION] = [];
-        }
-        $this->serviceArray[$this::CALLS_SECTION][] = $call->getCallAsArray();
+        $this->calls[] = $call->getCallAsArray();
     }
 
     /**
@@ -204,12 +208,12 @@ class DIServiceWrapper
      */
     private function updateCall(DICallWrapper $call)
     {
-        $callsCount = count($this->serviceArray[$this::CALLS_SECTION]);
+        $callsCount = count($this->calls);
 
         for ($i = 0; $i < $callsCount; $i++) {
-            $existingCall = new DICallWrapper($this->serviceArray[$this::CALLS_SECTION][$i]);
+            $existingCall = new DICallWrapper($this->calls[$i]);
             if ($existingCall->getMethodName() === $call->getMethodName()) {
-                $this->serviceArray[$this::CALLS_SECTION][$i] = $call->getCallAsArray();
+                $this->calls[$i] = $call->getCallAsArray();
                 return;
             }
         }
@@ -225,12 +229,10 @@ class DIServiceWrapper
      */
     private function getCall(string $methodName): DICallWrapper
     {
-        if (\array_key_exists($this::CALLS_SECTION, $this->serviceArray)) {
-            foreach ($this->serviceArray[$this::CALLS_SECTION] as $callArray) {
-                $call = new DICallWrapper($callArray);
-                if ($call->getMethodName() === $methodName) {
-                    return $call;
-                }
+        foreach ($this->calls as $callArray) {
+            $call = new DICallWrapper($callArray);
+            if ($call->getMethodName() === $methodName) {
+                return $call;
             }
         }
         throw new MissingUpdateCallException();
