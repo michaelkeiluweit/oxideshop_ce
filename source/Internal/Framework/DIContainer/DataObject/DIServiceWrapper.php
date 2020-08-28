@@ -19,11 +19,11 @@ class DIServiceWrapper
     private const SET_CONTEXT_METHOD = 'setContext';
     public const SET_CONTEXT_PARAMETER = '@OxidEsales\EshopCommunity\Internal\Transition\Utility\ContextInterface';
 
-    /** @var  string $key */
-    private $key;
+    /** @var  string $id */
+    private $id;
 
-    /** @var  array $serviceArray */
-    private $serviceArray;
+    /** @var  array $serviceArguments */
+    private $serviceArguments;
 
     /** @var  string $class */
     private $class;
@@ -34,24 +34,24 @@ class DIServiceWrapper
     /**
      * DIServiceWrapper constructor.
      *
-     * @param string $key
-     * @param array  $serviceArray
+     * @param string $id
+     * @param array  $serviceArguments
      */
-    public function __construct(string $key, array $serviceArray)
+    public function __construct(string $id, array $serviceArguments)
     {
-        $this->key = $key;
-        $this->serviceArray = $serviceArray;
+        $this->id = $id;
+        $this->serviceArguments = $serviceArguments;
 
         $this->calls = [];
-        if (array_key_exists($this::CALLS_SECTION, $this->serviceArray)) {
-            $this->calls = $this->serviceArray[$this::CALLS_SECTION];
-            unset($this->serviceArray[$this::CALLS_SECTION]);
+        if (array_key_exists($this::CALLS_SECTION, $this->serviceArguments)) {
+            $this->calls = $this->serviceArguments[$this::CALLS_SECTION];
+            unset($this->serviceArguments[$this::CALLS_SECTION]);
         }
 
-        if (isset($serviceArray['class'])) {
-            $this->class = $serviceArray['class'];
-        } elseif (class_exists($this->key)) {
-            $this->class = $this->key;
+        if (isset($serviceArguments['class'])) {
+            $this->class = $serviceArguments['class'];
+        } elseif (class_exists($this->id)) {
+            $this->class = $this->id;
         }
     }
 
@@ -60,7 +60,7 @@ class DIServiceWrapper
      */
     public function getServiceAsArray(): array
     {
-        $tmp = $this->serviceArray;
+        $tmp = $this->serviceArguments;
         if (!empty($this->calls)) {
             $tmp[$this::CALLS_SECTION] = $this->calls;
         }
@@ -76,7 +76,7 @@ class DIServiceWrapper
             return false;
         }
 
-        return $this->getClass() instanceof ShopAwareInterface;
+        return in_array(ShopAwareInterface::class, class_implements($this->class), true);
     }
 
     /**
@@ -130,7 +130,7 @@ class DIServiceWrapper
      */
     public function getKey()
     {
-        return $this->key;
+        return $this->id;
     }
 
     /**
