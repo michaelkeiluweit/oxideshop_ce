@@ -9,10 +9,13 @@ declare(strict_types=1);
 
 namespace OxidEsales\EshopCommunity\Internal\Setup\Command;
 
+use OxidEsales\DatabaseViewsGenerator\ViewsGenerator;
 use OxidEsales\EshopCommunity\Internal\Framework\Console\Command\NamedArgumentsTrait;
-use OxidEsales\EshopCommunity\Internal\Setup\Database\Exception\DatabaseExistsAndNotEmptyException;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Exception\DatabaseExistsException;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Exception\DatabaseConnectionException;
 use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseCheckerInterface;
-use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseInstallerInterface;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseCreatorInterface;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseInitiatorInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -31,23 +34,23 @@ class DatabaseSetupCommand extends Command
     private const FORCE_INSTALLATION = 'force-installation';
 
     /**
-     * @var DatabaseCheckerInterface
+     * @var DatabaseCreatorInterface
      */
-    private $databaseChecker;
+    private $databaseCreator;
 
     /**
-     * @var DatabaseInstallerInterface
+     * @var DatabaseInitiatorInterface
      */
-    private $databaseInstaller;
+    private $databaseInitiator;
 
     public function __construct(
-        DatabaseCheckerInterface $databaseChecker,
-        DatabaseInstallerInterface $databaseInstaller
+        DatabaseCreatorInterface $databaseCreator,
+        DatabaseInitiatorInterface $databaseInitiator
     ) {
         parent::__construct();
 
-        $this->databaseChecker = $databaseChecker;
-        $this->databaseInstaller = $databaseInstaller;
+        $this->databaseCreator = $databaseCreator;
+        $this->databaseInitiator = $databaseInitiator;
     }
 
     protected function configure()
@@ -71,42 +74,27 @@ class DatabaseSetupCommand extends Command
     {
         $this->checkRequiredCommandOptions($this->getDefinition()->getOptions(), $input);
 
-        if ($this->isActionConfirmationNeeded($input)) {
-            $helper = $this->getHelper('question');
-            $question = new ConfirmationQuestion($this->getQuestionText($input), false);
+        $output->writeln('<info>Creating database...</info>');
+        try {
+            $this->createDatabase($input);
+        } catch (DatabaseExistsException $exception) {
+            if (!$this->forceDatabaseInstallation($input)) {
+                $helper = $this->getHelper('question');
+                $question = new ConfirmationQuestion($this->getQuestionText($input), false);
 
-            if (!$helper->ask($input, $output, $question)) {
-                $output->writeln('<info>Setup has been canceled.</info>');
-                return Command::SUCCESS;
+                if (!$helper->ask($input, $output, $question)) {
+                    $output->writeln('<info>Setup has been canceled.</info>');
+                    return Command::SUCCESS;
+                }
             }
         }
 
-        $output->writeln('<info>Installing database...</info>');
-        $this->installDatabase($input);
+        $output->writeln('<info>Initializing database...</info>');
+        $this->initializeDatabase($input);
 
         $output->writeln('<info>Setup has been finished.</info>');
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * @param InputInterface $input
-     * @return bool
-     */
-    private function doesDatabaseExist(InputInterface $input): bool
-    {
-        try {
-            $this->databaseChecker->canCreateDatabase(
-                $input->getOption(self::DB_HOST),
-                (int)$input->getOption(self::DB_PORT),
-                $input->getOption(self::DB_USER),
-                $input->getOption(self::DB_PASSWORD),
-                $input->getOption(self::DB_NAME)
-            );
-        } catch (DatabaseExistsAndNotEmptyException $exception) {
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -126,29 +114,37 @@ class DatabaseSetupCommand extends Command
     private function forceDatabaseInstallation(InputInterface $input): bool
     {
         $value = $input->getOption(self::FORCE_INSTALLATION);
-        return (isset($value) && $value);
+        return isset($value) && $value;
     }
 
     /**
      * @param InputInterface $input
-     * @return bool
+     * @throws DatabaseExistsException
+     * @throws DatabaseConnectionException
      */
-    private function isActionConfirmationNeeded(InputInterface $input): bool
+    private function createDatabase(InputInterface $input): void
     {
-        return (!$this->forceDatabaseInstallation($input) && $this->doesDatabaseExist($input));
-    }
-
-    /**
-     * @param InputInterface $input
-     */
-    private function installDatabase(InputInterface $input): void
-    {
-        $this->databaseInstaller->install(
+        $this->databaseCreator->createDatabase(
             $input->getOption(self::DB_HOST),
             (int) $input->getOption(self::DB_PORT),
             $input->getOption(self::DB_USER),
             $input->getOption(self::DB_PASSWORD),
-            $input->getOption(self::DB_NAME)
-        );
+            $input->getOption(self::DB_NAME));
+    }
+
+    private function initializeDatabase(InputInterface $input): void
+    {
+        $this->databaseInitiator->initiateDatabase(
+            $input->getOption(self::DB_HOST),
+            (int) $input->getOption(self::DB_PORT),
+            $input->getOption(self::DB_USER),
+            $input->getOption(self::DB_PASSWORD),
+            $input->getOption(self::DB_NAME));
+        $this->generateViews();
+    }
+
+    private function generateViews(): void
+    {
+        (new ViewsGenerator())->generate();
     }
 }

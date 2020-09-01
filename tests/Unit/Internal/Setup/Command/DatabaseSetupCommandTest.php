@@ -11,7 +11,10 @@ namespace OxidEsales\EshopCommunity\Tests\Unit\Internal\Setup\Command;
 
 use OxidEsales\EshopCommunity\Internal\Setup\Command\DatabaseSetupCommand;
 use OxidEsales\EshopCommunity\Internal\Setup\Database\Exception\DatabaseExistsAndNotEmptyException;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Exception\DatabaseExistsException;
 use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseCheckerInterface;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseCreatorInterface;
+use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseInitiatorInterface;
 use OxidEsales\EshopCommunity\Internal\Setup\Database\Service\DatabaseInstallerInterface;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -112,27 +115,27 @@ final class DatabaseSetupCommandTest extends TestCase
         return $application->find('oe:setup:database');
     }
 
-    private function getDatabaseCheckerWithExceptionMock(): DatabaseCheckerInterface
+    private function getDatabaseCheckerWithExceptionMock(): DatabaseCreatorInterface
     {
-        $databaseChecker = $this->prophesize(DatabaseCheckerInterface::class);
-        $databaseChecker->canCreateDatabase(
+        $databaseChecker = $this->prophesize(DatabaseCreatorInterface::class);
+        $databaseChecker->createDatabase(
             self::HOST,
             self::PORT,
             self::DB_USER,
             self::DB_PASS,
             self::DB
         )
-            ->willThrow(DatabaseExistsAndNotEmptyException::class);
+            ->willThrow(DatabaseExistsException::class);
         return $databaseChecker->reveal();
     }
 
-    private function getDatabaseCheckerMock(): DatabaseCheckerInterface
+    private function getDatabaseCheckerMock(): DatabaseCreatorInterface
     {
-        return $this->prophesize(DatabaseCheckerInterface::class)->reveal();
+        return $this->prophesize(DatabaseCreatorInterface::class)->reveal();
     }
 
-    private function getDatabaseInstallerMock(): DatabaseInstallerInterface
+    private function getDatabaseInstallerMock(): DatabaseInitiatorInterface
     {
-        return $this->prophesize(DatabaseInstallerInterface::class)->reveal();
+        return $this->prophesize(DatabaseInitiatorInterface::class)->reveal();
     }
 }
