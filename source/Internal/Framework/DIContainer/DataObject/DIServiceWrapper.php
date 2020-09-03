@@ -14,6 +14,7 @@ use OxidEsales\EshopCommunity\Internal\Framework\DIContainer\Exception\MissingUp
 
 class DIServiceWrapper
 {
+    private const CLASS_SECTION = 'class';
     private const CALLS_SECTION = 'calls';
     private const SET_ACTIVE_SHOPS_METHOD = 'setActiveShops';
     private const SET_CONTEXT_METHOD = 'setContext';
@@ -48,27 +49,36 @@ class DIServiceWrapper
 
     private function setClass(): void
     {
-        if (isset($this->serviceArguments['class'])) {
-            $this->class = $this->serviceArguments['class'];
-        } elseif (class_exists($this->id)) {
+        if (isset($this->serviceArguments[self::CLASS_SECTION])) {
+            $this->class = $this->serviceArguments[self::CLASS_SECTION];
+        } elseif ($this->checkIfIdIsResolvableClassName()) {
             $this->class = $this->id;
         }
+    }
+
+    private function checkIfIdIsResolvableClassName(): bool
+    {
+        return class_exists($this->id);
     }
 
     private function setCalls(): void
     {
         if (array_key_exists(self::CALLS_SECTION, $this->serviceArguments)) {
             $this->calls = $this->serviceArguments[self::CALLS_SECTION];
-            unset($this->serviceArguments[self::CALLS_SECTION]);
         }
     }
 
     public function getServiceAsArray(): array
     {
+        $this->updateCalls();
+        return $this->serviceArguments;
+    }
+
+    private function updateCalls(): void
+    {
         if (!empty($this->calls)) {
             $this->serviceArguments[self::CALLS_SECTION] = $this->calls;
         }
-        return $this->serviceArguments;
     }
 
     public function isShopAware(): bool
@@ -76,8 +86,7 @@ class DIServiceWrapper
         if (!$this->hasClass()) {
             return false;
         }
-
-        return in_array(ShopAwareInterface::class, class_implements($this->class), true);
+        return in_array(ShopAwareInterface::class, class_implements($this->getClass()), true);
     }
 
     public function addActiveShops(array $shops): array
