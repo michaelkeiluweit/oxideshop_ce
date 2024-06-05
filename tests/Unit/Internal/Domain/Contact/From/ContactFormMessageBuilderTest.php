@@ -26,9 +26,11 @@ class ContactFormMessageBuilderTest extends \PHPUnit\Framework\TestCase
         $shopAdapter = $this->getMockBuilder(ShopAdapterInterface::class)->getMock();
         $shopAdapter
             ->method('translateString')
-            ->willReturnCallback(function ($arg) {
-                return $arg;
-            });
+            ->will(
+                $this->returnCallback(function ($arg) {
+                    return $arg;
+                })
+            );
         $contactFormMessageBuilder = new ContactFormMessageBuilder($shopAdapter);
 
         $this->assertStringContainsString(

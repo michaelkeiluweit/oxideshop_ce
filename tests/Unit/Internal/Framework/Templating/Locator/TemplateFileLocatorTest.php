@@ -33,7 +33,7 @@ final class TemplateFileLocatorTest extends TestCase
         $config->expects($this->any())
             ->method('getTemplatePath')
             ->with($templateName, false)
-            ->willReturn('pathToTpl/' . $templateName);
+            ->will($this->returnValue('pathToTpl/' . $templateName));
 
         return $config;
     }
