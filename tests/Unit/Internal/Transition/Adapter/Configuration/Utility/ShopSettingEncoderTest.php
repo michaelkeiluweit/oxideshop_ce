@@ -10,16 +10,13 @@ declare(strict_types=1);
 namespace OxidEsales\EshopCommunity\Internal\Framework\Config\Utility;
 
 use OxidEsales\EshopCommunity\Internal\Framework\Config\Exception\InvalidShopSettingValueException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @internal
- */
+
 class ShopSettingEncoderTest extends TestCase
 {
-    /**
-     * @dataProvider settingDataProvider
-     */
+    #[DataProvider('settingDataProvider')]
     public function testEncoding($value, $encodedValue, string $encodingType)
     {
         $shopSettingEncoder = new ShopSettingEncoder();
@@ -30,9 +27,7 @@ class ShopSettingEncoderTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider settingDataProvider
-     */
+    #[DataProvider('settingDataProvider')]
     public function testDecoding($value, $encodedValue, string $encodingType)
     {
         $shopSettingEncoder = new ShopSettingEncoder();

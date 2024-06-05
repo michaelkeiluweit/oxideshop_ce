@@ -7,17 +7,18 @@ declare(strict_types=1);
  * See LICENSE file for license details.
  */
 
+namespace OxidEsales\EshopCommunity\Tests\Unit\Internal\Framework\Logger\Validator;
+
 use OxidEsales\EshopCommunity\Internal\Framework\Logger\Configuration\PsrLoggerConfigurationInterface;
 use OxidEsales\EshopCommunity\Internal\Framework\Logger\Validator\PsrLoggerConfigurationValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use Psr\Log\LogLevel;
 
-class PsrLoggerConfigurationValidatorTest extends PHPUnit\Framework\TestCase
+class PsrLoggerConfigurationValidatorTest extends \PHPUnit\Framework\TestCase
 {
-
-    /**
-     * @dataProvider dataProviderValidLogLevels
-     * @doesNotPerformAssertions
-     */
+    #[DataProvider('dataProviderValidLogLevels')]
+    #[DoesNotPerformAssertions]
     public function testValidLogLevelValidation($logLevel)
     {
         /** @var PHPUnit\Framework\MockObject\MockObject|PsrLoggerConfigurationInterface $configurationMock */
@@ -45,9 +46,7 @@ class PsrLoggerConfigurationValidatorTest extends PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderInvalidLogLevels
-     */
+    #[DataProvider('dataProviderInvalidLogLevels')]
     public function testInvalidLogLevelValidation($logLevel)
     {
         $this->expectException(\InvalidArgumentException::class);
